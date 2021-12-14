@@ -119,6 +119,8 @@ configure_chroot() {
 	for m in $mirrors; do
 		echo 'Server = '"$m"'/$repo/os/$arch'
 	done >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
+	# Enable pacman's parallel downloads support
+	sed -i 's/^#ParallelDownloads/ParallelDownloads/' "/root.$cpu_type/etc/pacman.conf"
 	# Disable signature check, install Arch install scripts and haveged and launch haveged and re-enable signature checks.
 	sed -i.bak "s/^[[:space:]]*SigLevel[[:space:]]*=.*$/SigLevel = Never/" "/root.$cpu_type/etc/pacman.conf"
 	# Install Arch install scripts (Only needed for ARM)
