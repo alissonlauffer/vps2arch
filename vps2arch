@@ -246,7 +246,7 @@ configure_bootloader() {
 			done
 			;;
 		64)
-			grub-install --efi-directory=/boot/efi --bootloader-id=GRUB
+			grub-install --efi-directory=/boot/efi --removable
 			;;
 		esac
 		grub-mkconfig > /boot/grub/grub.cfg
