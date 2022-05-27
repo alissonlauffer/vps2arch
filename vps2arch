@@ -32,7 +32,7 @@ fi
 
 
 get_country() {
-	_download "https://api.ip.sb/geoip" | grep -oP '(?<=country_code":")\w+'
+	_download "https://cloudflare.com/cdn-cgi/trace" | grep -oP '(?<=loc=)\w+'
 }
 
 get_mirrors() {
