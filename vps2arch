@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/env bash
 
 # Copyright 2015, Timothy Redaelli <tredaelli@archlinux.info>
 
