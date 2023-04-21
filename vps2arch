@@ -157,7 +157,7 @@ save_root_pass() {
 }
 
 backup_old_files() {
-	cp -fL /etc/hostname /etc/localtime "/root.$cpu_type/etc/" || true
+	cp -fL /etc/localtime "/root.$cpu_type/etc/" || true
 }
 
 delete_all() {
@@ -313,6 +313,9 @@ configure_network() {
 }
 
 finalize() {
+	# Set hostname to the kernel hostname
+	cat /proc/sys/kernel/hostname > /etc/hostname
+
 	# OpenVZ hacks
 	if is_openvz; then
 		local kernelver
