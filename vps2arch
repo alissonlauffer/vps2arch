@@ -42,7 +42,7 @@ get_mirrors() {
 		echo 'https://cloudflaremirrors.com/archlinux/'
 		country=$1
 
-		[ -z $country ] && country=$(get_country || echo -n "all")
+		[ -z "$country" ] && country=$(get_country || echo -n "all")
 		_download "https://archlinux.org/mirrorlist/?country=$country&protocol=http&protocol=https&ip_version=4&use_mirror_status=on" | grep -oP '(?<=Server = ).*(?=\$repo/)' || get_mirrors all
 	fi
 }
@@ -51,7 +51,7 @@ cpu_type=$(uname -m)
 
 is_openvz() { [ -d /proc/vz -a ! -d /proc/bc ]; }
 is_lxc() { grep -aqw container=lxc /proc/1/environ ; }
-is_arm() { uname -m | egrep -q 'aarch64|arm'; }
+is_arm() { uname -m | grep -Eq 'aarch64|arm'; }
 
 # Hack: saving output for later use
 is_arm=$(is_arm; echo $?)
@@ -78,7 +78,7 @@ download_and_extract_bootstrap() {
 	else
 		targetdir="/"
 
-		download iso/latest/sha256sums.txt | egrep "[[:digit:]]-$cpu_type.tar.gz" > "sha256sums.txt"
+		download iso/latest/sha256sums.txt | grep -E "[[:digit:]]-$cpu_type.tar.gz" > "sha256sums.txt"
 		read -r sha256 filename < "sha256sums.txt"
 		download "iso/latest/$filename" > "$filename"
 		sha256sum -c sha256sums.txt || exit 1
@@ -194,7 +194,7 @@ install_packages() {
 
 restore_root_pass() {
 	# If the root password is not set, use vps2arch
-	if egrep -q '^root:[^$]' "/root.$cpu_type/root.passwd"; then
+	if grep -Eq '^root:[^$]' "/root.$cpu_type/root.passwd"; then
 		echo "root:vps2arch" | chpasswd
 	else
 		sed -i '/^root:/d' /etc/shadow
@@ -325,12 +325,12 @@ finalize() {
 	if is_openvz; then
 		local kernelver
 		read -r _ _ kernelver _ < /proc/version
-		if [ "$kernelver" '>' '3.10' ]; then
+		if [ "$kernelver" '>' '3.10.0' ]; then
 			# Virtuozzo 7 works with systemd, but it needs /etc/resolvconf/resolv.conf.d directory
 			mkdir -p /etc/resolvconf/resolv.conf.d
 		elif [ "$kernelver" '<' '2.6.32-042stab111.1' ]; then
-			# Use my repository for OpenVZ-patched systemd
-			sed -i 's;^#\[testing\]$;[tredaelli-systemd]\nServer = http://pkgbuild.com/~tredaelli/repo/systemd/$arch\n\n&;' /etc/pacman.conf
+			echo "ERROR: You are using an old kernel ($kernelver) which does not support systemd."
+			exit 1
 		fi
 	fi
 
