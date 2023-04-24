@@ -1,5 +1,7 @@
 #!/bin/env bash
 
+# shellcheck disable=SC2016
+
 # Copyright 2015, Timothy Redaelli <tredaelli@archlinux.info>
 
 # This program is free software: you can redistribute it and/or modify
@@ -178,7 +180,7 @@ delete_all() {
 install_packages() {
 	local packages="base linux lvm2 openssh vim pacman-contrib" ld_path
 	# Arch Linux ARM does not provide a reflector utility
-	[ $is_arm -eq 1 ] && packages="$packages reflector"
+	[ "$is_arm" -eq "1" ] && packages="$packages reflector"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
 	# XXX Install gptdisk for syslinux. To be removed then FS#45029 will be closed
 	[ "$bootloader" = "syslinux" ] && packages="$packages gptfdisk"
@@ -189,7 +191,7 @@ install_packages() {
 	ld_path=("/root.$cpu_type/usr/lib/"ld-*.so*)
 	# Black magic!
 	${ld_path[0]} --library-path "/root.$cpu_type/usr/lib" \
-		"/root.$cpu_type/usr/bin/chroot" "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
+		"/root.$cpu_type/usr/bin/chroot" "/root.$cpu_type" /usr/bin/pacstrap -M /mnt "${packages[@]}"
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
 }
 
@@ -240,7 +242,7 @@ configure_bootloader() {
 
 		if [ $needs_lvm2 -eq 1 ]; then
 			local vg
-			vg=$(lvs --noheadings $root_dev | awk '{print $2}')
+			vg=$(lvs --noheadings "$root_dev" | awk '{print $2}')
 			root_dev=$(pvs --noheadings | awk -v vg="$vg" '($2 == vg) { print $1 }')
 		fi
 		for root_dev in $root_dev; do
