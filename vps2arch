@@ -49,7 +49,7 @@ get_mirrors() {
 
 cpu_type=$(uname -m)
 
-is_openvz() { [ -d /proc/vz -a ! -d /proc/bc ]; }
+is_openvz() { [ -d /proc/vz ] && [ ! -d /proc/bc ]; }
 is_lxc() { grep -aqw container=lxc /proc/1/environ ; }
 is_arm() { uname -m | grep -Eq 'aarch64|arm'; }
 
@@ -66,7 +66,7 @@ download() {
 }
 
 download_and_extract_bootstrap() {
-	local sha256 filename
+	local filename
 	if is_arm; then
 		mkdir -p "/root.$cpu_type"
 		targetdir="/root.$cpu_type"
@@ -79,7 +79,7 @@ download_and_extract_bootstrap() {
 		targetdir="/"
 
 		download iso/latest/sha256sums.txt | grep -E "[[:digit:]]-$cpu_type.tar.gz" > "sha256sums.txt"
-		read -r sha256 filename < "sha256sums.txt"
+		read -r _ filename < "sha256sums.txt"
 		download "iso/latest/$filename" > "$filename"
 		sha256sum -c sha256sums.txt || exit 1
 	fi
@@ -176,7 +176,7 @@ delete_all() {
 }
 
 install_packages() {
-	local packages="base linux lvm2 openssh vim pacman-contrib"
+	local packages="base linux lvm2 openssh vim pacman-contrib" ld_path
 	# Arch Linux ARM does not provide a reflector utility
 	[ $is_arm -eq 1 ] && packages="$packages reflector"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
@@ -184,10 +184,11 @@ install_packages() {
 	[ "$bootloader" = "syslinux" ] && packages="$packages gptfdisk"
 	[ "$network" = "netctl" ] && packages="$packages netctl"
 	while read -r _ mountpoint filesystem _; do
-		[ "$mountpoint" = "/" -a "$filesystem" = "xfs" ] && packages="$packages xfsprogs"
+		[ "$mountpoint" = "/" ] && [ "$filesystem" = "xfs" ] && packages="$packages xfsprogs"
 	done < /proc/mounts
+	ld_path=("/root.$cpu_type/usr/lib/"ld-*.so*)
 	# Black magic!
-	"/root.$cpu_type/usr/lib"/ld-*.so* --library-path "/root.$cpu_type/usr/lib" \
+	${ld_path[0]} --library-path "/root.$cpu_type/usr/lib" \
 		"/root.$cpu_type/usr/bin/chroot" "/root.$cpu_type" /usr/bin/pacstrap -M /mnt $packages
 	cp -L "/root.$cpu_type/etc/resolv.conf" /etc
 }
@@ -209,7 +210,8 @@ cleanup() {
 }
 
 configure_bootloader() {
-	local root_dev=$(findmnt -no SOURCE /) root_devs= tmp= needs_lvm2=0 uefi=0
+	local root_dev='' root_devs='' tmp='' needs_lvm2=0 uefi=0
+	root_dev=$(findmnt -no SOURCE /)
 	case $root_dev in
 	/dev/mapper/*) needs_lvm2=1 ;;
 	esac
@@ -283,8 +285,7 @@ configure_network() {
 			rshift(and(ip,0x00ff0000),16), rshift(and(ip,0xff000000),24)) ; exit }' < /proc/net/route)
 	EOF
 
-	set -- $(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')
-	ip=$@
+	ip="$(ip addr show dev "$dev" | awk '($1 == "inet") { print $2 }')"
 
 	# FIXME Not supported for "P2P" interfaces, such as venet, yet
 	if [ "$network" = "systemd-networkd" ]; then
@@ -385,7 +386,7 @@ mirrors=
 while getopts ":b:m:n:h" opt; do
 	case $opt in
 	b)
-		if ! [ "$OPTARG" = "grub" -o "$OPTARG" = "syslinux" -o "$OPTARG" = "none" ]; then
+		if ! [ "$OPTARG" = "grub" ] || [ "$OPTARG" = "syslinux" ] || [ "$OPTARG" = "none" ]; then
 			echo "Invalid bootloader specified" >&2
 			exit 1
 		fi
@@ -395,7 +396,7 @@ while getopts ":b:m:n:h" opt; do
 		mirrors="${mirrors:+$mirrors }$OPTARG"
 		;;
 	n)
-		if ! [ "$OPTARG" = "systemd-networkd" -o "$OPTARG" = "netctl" -o "$OPTARG" = "none" ]; then
+		if ! [ "$OPTARG" = "systemd-networkd" ] || [ "$OPTARG" = "netctl" ] || [ "$OPTARG" = "none" ]; then
 			echo "Invalid networking configuration system specified" >&2
 			exit 1
 		fi
