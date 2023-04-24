@@ -37,12 +37,13 @@ get_country() {
 
 get_mirrors() {
 	if is_arm; then
-		echo "http://mirror.archlinuxarm.org/"
+		_download 'https://raw.githubusercontent.com/archlinuxarm/PKGBUILDs/master/core/pacman-mirrorlist/mirrorlist' | grep -oP '(?<=Server = ).*(?=\$arch/)'
 	else
+		echo 'https://cloudflaremirrors.com/archlinux/'
 		country=$1
 
 		[ -z $country ] && country=$(get_country || echo -n "all")
-		_download "https://www.archlinux.org/mirrorlist/?country=$country&protocol=http&protocol=https&ip_version=4&use_mirror_status=on" | grep -oP '(?<=#Server = ).*(?=\$repo/)' || get_mirrors all
+		_download "https://archlinux.org/mirrorlist/?country=$country&protocol=http&protocol=https&ip_version=4&use_mirror_status=on" | grep -oP '(?<=Server = ).*(?=\$repo/)' || get_mirrors all
 	fi
 }
 
@@ -120,8 +121,12 @@ chroot_exec() {
 configure_chroot() {
 	local m
 	for m in $mirrors; do
-		echo 'Server = '"$m"'/$repo/os/$arch'
-	done >> "/root.$cpu_type/etc/pacman.d/mirrorlist"
+		if is_arm; then
+			echo 'Server = '"$m"'$arch/$repo'
+		else
+			echo 'Server = '"$m"'$repo/os/$arch'
+		fi
+	done > "/root.$cpu_type/etc/pacman.d/mirrorlist"
 	# Enable pacman's parallel downloads support
 	sed -i 's/^#ParallelDownloads/ParallelDownloads/' "/root.$cpu_type/etc/pacman.conf"
 	# Disable signature check, install Arch install scripts and haveged and launch haveged and re-enable signature checks.
@@ -171,7 +176,7 @@ delete_all() {
 }
 
 install_packages() {
-	local packages="base linux lvm2 openssh vim"
+	local packages="base linux lvm2 openssh vim pacman-contrib"
 	# Arch Linux ARM does not provide a reflector utility
 	[ $is_arm -eq 1 ] && packages="$packages reflector"
 	[ "$bootloader" != "none" ] && packages="$packages $bootloader"
@@ -332,16 +337,32 @@ finalize() {
 	# Enable SSH login for user root (#3)
 	sed -i '/^#PermitRootLogin\s/s/.*/&\nPermitRootLogin yes/' /etc/ssh/sshd_config
 
-	# Run reflector to get updated mirrors (skipped for ARM)
+	# Run reflector to get updated mirrors
 
 	if ! is_arm; then
 		cat <<-EOF
 
-			Reflector: Rating the 35 most recently synced HTTPS servers, sorting them by download speed
+			Reflector: Rating the 30 most recently synced mirrors, sorting them by download speed
 
 		EOF
 
-		reflector -l 35 -p https --sort rate --save /etc/pacman.d/mirrorlist
+
+		# The following line does the following:
+		# - get the 10 most recently synced mirrors from the same country as the VPS + global mirrors as fallback
+		# - get the 20 most recently synced mirrors from the rest of the world
+		# - rank them by download speed
+		# - save the result to /etc/pacman.d/mirrorlist
+
+		(reflector -l 10 --country "$(get_country || echo -n '*')," --completion-percent 95 --protocol https,http && reflector -l 20 --completion-percent 95 --protocol https,http) | rankmirrors -r core - > /etc/pacman.d/mirrorlist
+	else
+		cat <<-EOF
+
+			Rankmirrors: Ranking mirrors by download speed
+
+		EOF
+
+		# Download the mirrorlist from the Arch Linux ARM repository and uncomment all the mirrors
+		_download https://raw.githubusercontent.com/archlinuxarm/PKGBUILDs/master/core/pacman-mirrorlist/mirrorlist | sed 's;^Server;#Server;' | sed 's;# Server;Server;' | rankmirrors -r alarm - > /etc/pacman.d/mirrorlist
 	fi
 
 	cat <<-EOF
