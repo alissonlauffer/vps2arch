@@ -43,9 +43,6 @@ jobs:
           debian-10-nocloud-amd64.qcow2
           id_rsa
         key: default
-    - uses: actions/download-artifact@v3
-      with:
-        name: build
     - run: sudo apt update -y
     - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
     - run: mkdir ~/.ssh
@@ -74,9 +71,6 @@ jobs:
           debian-10-nocloud-amd64.qcow2
           id_rsa
         key: default
-    - uses: actions/download-artifact@v3
-      with:
-        name: build
     - run: sudo apt update -y
     - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
     - run: mkdir ~/.ssh
@@ -105,9 +99,6 @@ jobs:
           debian-10-nocloud-amd64.qcow2
           id_rsa
         key: default
-    - uses: actions/download-artifact@v3
-      with:
-        name: build
     - run: sudo apt update -y
     - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
     - run: mkdir ~/.ssh
@@ -136,9 +127,6 @@ jobs:
           debian-10-nocloud-amd64.qcow2
           id_rsa
         key: default
-    - uses: actions/download-artifact@v3
-      with:
-        name: build
     - run: sudo apt update -y
     - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client ovmf sshpass
     - run: mkdir ~/.ssh
