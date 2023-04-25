@@ -388,7 +388,7 @@ mirrors=
 while getopts ":b:m:n:h" opt; do
 	case $opt in
 	b)
-		if ! [ "$OPTARG" = "grub" ] || [ "$OPTARG" = "syslinux" ] || [ "$OPTARG" = "none" ]; then
+		if ! { [ "$OPTARG" = "grub" ] || [ "$OPTARG" = "syslinux" ] || [ "$OPTARG" = "none" ]; }; then
 			echo "Invalid bootloader specified" >&2
 			exit 1
 		fi
@@ -398,7 +398,7 @@ while getopts ":b:m:n:h" opt; do
 		mirrors="${mirrors:+$mirrors }$OPTARG"
 		;;
 	n)
-		if ! [ "$OPTARG" = "systemd-networkd" ] || [ "$OPTARG" = "netctl" ] || [ "$OPTARG" = "none" ]; then
+		if ! { [ "$OPTARG" = "systemd-networkd" ] || [ "$OPTARG" = "netctl" ] || [ "$OPTARG" = "none" ]; }; then
 			echo "Invalid networking configuration system specified" >&2
 			exit 1
 		fi
