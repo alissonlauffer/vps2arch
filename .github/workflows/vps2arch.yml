@@ -1,0 +1,142 @@
+name: vps2arch
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        lfs: true
+    - uses: actions/cache@v3
+      with:
+        path: |-
+          debian-10-nocloud-amd64.qcow2
+          id_rsa
+        key: default
+    - run: sudo apt update -y
+    - run: sudo apt install -y --no-install-recommends -qq libguestfs-tools busybox gnupg1 openssh-client
+    - run: sudo ssh-keygen -q -N '' -f /root/.ssh/id_rsa
+    - run: curl -fOL https://cdimage.debian.org/cdimage/cloud/buster/latest/debian-10-nocloud-amd64.qcow2
+    - run: qemu-img resize debian-10-nocloud-amd64.qcow2 +1G
+    - run: sudo LIBGUESTFS_BACKEND=direct virt-customize -a debian-10-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"
+    - run: sudo mv /root/.ssh/id_rsa id_rsa
+    - run: sudo chown $USER:$USER id_rsa
+      if: always()
+  test_default:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        lfs: true
+    - uses: actions/cache@v3
+      with:
+        path: |-
+          debian-10-nocloud-amd64.qcow2
+          id_rsa
+        key: default
+    - run: sudo apt update -y
+    - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
+    - run: mkdir ~/.ssh
+    - run: mv id_rsa ~/.ssh/id_rsa
+    - run: printf '%s\n\t' 'Host *' 'ServerAliveInterval 15' 'UserKnownHostsFile /dev/null' 'StrictHostKeyChecking no' 'CheckHostIP no' > ~/.ssh/config
+    - run: qemu-system-x86_64 -m 256 -daemonize -drive file=debian-10-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
+    - run: tail -f /tmp/serial &
+    - run: sleep 120
+    - run: scp -P 10022 vps2arch root@127.0.0.1:vps2arch
+    - run: ssh -p 10022 root@127.0.0.1 "chmod +x vps2arch"
+    - run: ssh -p 10022 root@127.0.0.1 "./vps2arch && sync ; reboot -f" || true
+    - run: sleep 600
+    - run: sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
+  test_netctl:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        lfs: true
+    - uses: actions/cache@v3
+      with:
+        path: |-
+          debian-10-nocloud-amd64.qcow2
+          id_rsa
+        key: default
+    - run: sudo apt update -y
+    - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
+    - run: mkdir ~/.ssh
+    - run: mv id_rsa ~/.ssh/id_rsa
+    - run: printf '%s\n\t' 'Host *' 'ServerAliveInterval 15' 'UserKnownHostsFile /dev/null' 'StrictHostKeyChecking no' 'CheckHostIP no' > ~/.ssh/config
+    - run: qemu-system-x86_64 -m 256 -daemonize -drive file=debian-10-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
+    - run: tail -f /tmp/serial &
+    - run: sleep 120
+    - run: scp -P 10022 vps2arch root@127.0.0.1:vps2arch
+    - run: ssh -p 10022 root@127.0.0.1 "chmod +x vps2arch"
+    - run: ssh -p 10022 root@127.0.0.1 "./vps2arch -n netctl && sync ; reboot -f" || true
+    - run: sleep 600
+    - run: sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
+  test_syslinux:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        lfs: true
+    - uses: actions/cache@v3
+      with:
+        path: |-
+          debian-10-nocloud-amd64.qcow2
+          id_rsa
+        key: default
+    - run: sudo apt update -y
+    - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
+    - run: mkdir ~/.ssh
+    - run: mv id_rsa ~/.ssh/id_rsa
+    - run: printf '%s\n\t' 'Host *' 'ServerAliveInterval 15' 'UserKnownHostsFile /dev/null' 'StrictHostKeyChecking no' 'CheckHostIP no' > ~/.ssh/config
+    - run: qemu-system-x86_64 -m 256 -daemonize -drive file=debian-10-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
+    - run: tail -f /tmp/serial &
+    - run: sleep 120
+    - run: scp -P 10022 vps2arch root@127.0.0.1:vps2arch
+    - run: ssh -p 10022 root@127.0.0.1 "chmod +x vps2arch"
+    - run: ssh -p 10022 root@127.0.0.1 "./vps2arch -b syslinux && sync ; reboot -f" || true
+    - run: sleep 600
+    - run: sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
+  test_default_uefi:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        lfs: true
+    - uses: actions/cache@v3
+      with:
+        path: |-
+          debian-10-nocloud-amd64.qcow2
+          id_rsa
+        key: default
+    - run: sudo apt update -y
+    - run: sudo apt install -y --no-install-recommends -qq qemu-system-x86 openssh-client ovmf sshpass
+    - run: mkdir ~/.ssh
+    - run: mv id_rsa ~/.ssh/id_rsa
+    - run: printf '%s\n\t' 'Host *' 'ServerAliveInterval 15' 'UserKnownHostsFile /dev/null' 'StrictHostKeyChecking no' 'CheckHostIP no' > ~/.ssh/config
+    - run: qemu-system-x86_64 -m 256 -daemonize -bios /usr/share/OVMF/OVMF_CODE.fd -drive file=debian-10-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
+    - run: tail -f /tmp/serial &
+    - run: sleep 120
+    - run: scp -P 10022 vps2arch root@127.0.0.1:vps2arch
+    - run: ssh -p 10022 root@127.0.0.1 "chmod +x vps2arch"
+    - run: ssh -p 10022 root@127.0.0.1 "./vps2arch && sync ; reboot -f" || true
+    - run: sleep 600
+    - run: sshpass -proot ssh -p 10022 root@127.0.0.1 test -f /etc/arch-release
