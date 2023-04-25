@@ -21,11 +21,12 @@ jobs:
         key: default
     - run: sudo apt update -y
     - run: sudo apt install -y --no-install-recommends -qq libguestfs-tools busybox gnupg1 openssh-client
-    - run: ssh-keygen -q -N '' -f ~/.ssh/id_rsa
+    - run: sudo ssh-keygen -q -N '' -f /root/.ssh/id_rsa
     - run: curl -fOL https://cdimage.debian.org/cdimage/cloud/buster/latest/debian-10-nocloud-amd64.qcow2
     - run: qemu-img resize debian-10-nocloud-amd64.qcow2 +1G
     - run: sudo LIBGUESTFS_BACKEND=direct virt-customize -a debian-10-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"
-    - run: mv ~/.ssh/id_rsa id_rsa
+    - run: sudo mv /root/.ssh/id_rsa id_rsa
+    - run: sudo chown $USER:$USER id_rsa
       if: always()
   test_default:
     needs: build
