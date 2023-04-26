@@ -19,9 +19,9 @@ set -e
 
 # Gathering informations about actual environment.
 _download() {
-	if command -v wget >/dev/null 2>&1; then
+	if which wget >/dev/null 2>&1; then
 		wget -U vps2arch -O- "$@"
-	elif command -v curl >/dev/null 2>&1; then
+	elif which curl >/dev/null 2>&1; then
 		curl -A vps2arch -fL "$@"
 	else
 		echo "This script needs curl or wget" >&2
@@ -171,7 +171,7 @@ backup_old_files() {
 
 delete_all() {
 	# Remove immutable flag from any files / directories
-	if command -v chattr >/dev/null 2>&1; then
+	if which chattr >/dev/null 2>&1; then
 		find / -type f \( ! -path '/dev/*' -and ! -path '/proc/*' -and ! -path '/sys/*' -and ! -path '/selinux/*' -and ! -path "/root.$cpu_type/*" \) \
 			-exec chattr -i {} + 2>/dev/null || true
 	fi
