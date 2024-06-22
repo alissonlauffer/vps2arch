@@ -82,13 +82,13 @@ download_and_extract_bootstrap() {
 	else
 		targetdir="/"
 
-		download iso/latest/sha256sums.txt | grep -E "[[:digit:]]-$cpu_type.tar.gz" > "sha256sums.txt"
+		download iso/latest/sha256sums.txt | grep -E "[[:digit:]]-$cpu_type.tar.zst" > "sha256sums.txt"
 		read -r _ filename < "sha256sums.txt"
 		download "iso/latest/$filename" > "$filename"
 		sha256sum -c sha256sums.txt || exit 1
 	fi
 
-	tar -xpzf "$filename" -C "$targetdir"
+	tar -xpf "$filename" -C "$targetdir"
 	rm -f "$filename"
 
 	if grep -E '^nameserver\s+127\.' /etc/resolv.conf > /dev/null; then
