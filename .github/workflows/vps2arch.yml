@@ -22,8 +22,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt-get update -y
-          DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq libguestfs-tools busybox linux-image-amd64 gnupg1 openssh-client curl qemu-utils
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq libguestfs-tools busybox linux-image-amd64 gnupg1 openssh-client curl qemu-utils
 
       - name: Generate SSH key
         run: |
@@ -32,10 +32,10 @@ jobs:
       - name: Build QEMU image
         run: |
           curl -fOL https://cdimage.debian.org/cdimage/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
-          qemu-img create -f qcow2 -o preallocation=metadata newdisk.qcow2 4G
-          LIBGUESTFS_BACKEND=direct virt-resize --expand /dev/sda1 debian-12-nocloud-amd64.qcow2 newdisk.qcow2
-          mv newdisk.qcow2 debian-12-nocloud-amd64.qcow2
-          LIBGUESTFS_BACKEND=direct virt-customize -a debian-12-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates,openssh-server --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"
+          sudo qemu-img create -f qcow2 -o preallocation=metadata newdisk.qcow2 4G
+          sudo LIBGUESTFS_BACKEND=direct virt-resize --expand /dev/sda1 debian-12-nocloud-amd64.qcow2 newdisk.qcow2
+          sudo mv newdisk.qcow2 debian-12-nocloud-amd64.qcow2
+          sudo LIBGUESTFS_BACKEND=direct virt-customize -a debian-12-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates,openssh-server --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"
 
       - name: Save SSH key
         run: |
@@ -69,8 +69,8 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          apt-get update -y
-          DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq qemu-system-x86 openssh-client sshpass
 
       - name: Setup SSH
         run: |
@@ -81,7 +81,7 @@ jobs:
 
       - name: Start QEMU VM
         run: |
-          qemu-system-x86_64 -m 4096 -smp 2 -enable-kvm -daemonize -drive file=debian-12-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
+          sudo qemu-system-x86_64 -m 4096 -smp 2 -enable-kvm -daemonize -drive file=debian-12-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
           tail -f /tmp/serial &
           sleep 120
 
@@ -118,8 +118,8 @@ jobs:
 
       - name: Install test dependencies
         run: |
-          apt-get update -y
-          DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq qemu-system-x86 openssh-client ovmf sshpass
+          sudo apt-get update -y
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq qemu-system-x86 openssh-client ovmf sshpass
 
       - name: Setup SSH
         run: |
@@ -130,7 +130,7 @@ jobs:
 
       - name: Start QEMU VM (UEFI)
         run: |
-          qemu-system-x86_64 -m 4096 -smp 2 -enable-kvm -daemonize -bios /usr/share/OVMF/OVMF_CODE.fd -drive file=debian-12-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
+          sudo qemu-system-x86_64 -m 4096 -smp 2 -enable-kvm -daemonize -bios /usr/share/OVMF/OVMF_CODE.fd -drive file=debian-12-nocloud-amd64.qcow2,if=virtio -net nic -net user,hostfwd=tcp::10022-:22 -display none -vga none -serial file:/tmp/serial
           tail -f /tmp/serial &
           sleep 120
 
