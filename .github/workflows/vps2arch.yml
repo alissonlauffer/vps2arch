@@ -33,9 +33,9 @@ jobs:
         run: |
           curl -fOL https://cdimage.debian.org/cdimage/cloud/bookworm/latest/debian-12-nocloud-amd64.qcow2
           sudo qemu-img create -f qcow2 -o preallocation=metadata newdisk.qcow2 4G
-          sudo LIBGUESTFS_BACKEND=direct virt-resize --expand /dev/sda1 debian-12-nocloud-amd64.qcow2 newdisk.qcow2
+          sudo virt-resize --expand /dev/sda1 debian-12-nocloud-amd64.qcow2 newdisk.qcow2
           sudo mv newdisk.qcow2 debian-12-nocloud-amd64.qcow2
-          sudo LIBGUESTFS_BACKEND=direct virt-customize -a debian-12-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates,openssh-server --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"
+          sudo virt-customize -a debian-12-nocloud-amd64.qcow2 --root-password password:root --ssh-inject root --install wget,ca-certificates,openssh-server --firstboot-command "dpkg-reconfigure -f noninteractive openssh-server"
 
       - name: Save SSH key
         run: |
