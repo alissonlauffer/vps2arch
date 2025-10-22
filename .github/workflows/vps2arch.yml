@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -y
-          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq libguestfs-tools busybox linux-image-amd64 gnupg1 openssh-client curl qemu-utils
+          sudo DEBIAN_FRONTEND=noninteractive apt-get -o Acquire::Retires=10 install --no-install-recommends -qq libguestfs-tools busybox gnupg1 openssh-client curl qemu-utils
 
       - name: Generate SSH key
         run: |
